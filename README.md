@@ -1,2 +1,3 @@
-# mokens-bug-bounty
-Bug Bounty Program for Mokens Contract
+# Bug Bounty Program for the Mokens Contract
+
+
