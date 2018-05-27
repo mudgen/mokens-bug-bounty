@@ -29,7 +29,7 @@ You will notice that there is no burn/delete moken function in the contract. Thi
 So the implementation of tokenByIndex is very simple:
 ```  
 function tokenByIndex(uint256 _index) external view returns (uint256 tokenId) {
-    require(_index < mokensLength, "Token at this index does not exist.");
+    require(_index < mokensLength, "TokenId at this index does not exist.");
     return _index;
 }
 ```
