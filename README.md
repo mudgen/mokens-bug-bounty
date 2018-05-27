@@ -22,6 +22,10 @@ The contract mints ERC721-based crypto-collectibles called "mokens".
 
 The contract has been gas-optimized. Specifically the mint function has been optimized to require as little gas as possible while still implementing the needed functionality.
 
+### TokenId and Index
+
+Each moken has a tokenId that identifies it. tokenIds start at 0 and increment. The contract contains a list of all mokens via the `mapping (uint256 => Moken) private mokens;` mapping. 
+
 ### Burning/Deleting Mokens
 
 You will notice that there is no burn/delete moken function in the contract. This functionality was left out because this functionality would require a mapping from tokenId to token index position which would add at least 20,000 more gas to the mint function and add gas other places. Keeping the tokenId the same as its index position in the list of all mokens reduces gas and simplifies the implementation of ERC721Enumerable. 
