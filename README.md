@@ -35,7 +35,7 @@ function tokenByIndex(uint256 _index) external view returns (uint256 tokenId) {
 
 ### Burning/Deleting Mokens
 
-You will notice that there is no burn/delete moken function in the contract. This functionality was left out because this functionality would require a mapping from tokenId to token index position which would add at least 20,000 more gas to the mint function and add gas other places. Keeping the tokenId the same as its index position in the list of all mokens reduces gas and simplifies the implementation of functions such as tokenByIndex. 
+You will notice that there is no burn/delete moken function in the contract. This functionality was left out because this functionality would require a mapping from tokenId to index in the `mapping (uint256 => Moken) private mokens;` mapping which would add at least 20,000 more gas to the mint function and add gas other places. Keeping the tokenId the same as its index position in the list of all mokens reduces gas and simplifies the implementation of functions such as tokenByIndex. 
 
 I think most users will not want to delete/burn their mokens and when they do they can get rid of them by selling them or sending them to another ethereum address.
 
