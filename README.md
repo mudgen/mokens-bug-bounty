@@ -10,12 +10,18 @@ Generally, any useful comments, about bugs or not, are appreciated.
 
 The bug bounty starts now and ends on 30 May 2018 or potentially later than that.
 
-To understand what mokens are about read the about webpage about mokens here: https://mokens.io/about
+To understand what mokens are about read the webpage about mokens here: https://mokens.io/about
 
 Currently the beta version of the mokens website is running here: https://mokens.io/
-The mokens contract is running on the rinkeby network.
 
-## Details about the Mokens Contract
+## Understanding the Mokens Contract
+
+The mokens contract implements the ERC721, ERC721Enumerable, ERC721Metadata and ERC165 interfaces.
+
+The contract mints ERC721-based crypto-collectibles called "mokens".
+
+The contract has been gas-optimized. 
+
 
 
 
