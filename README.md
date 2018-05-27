@@ -14,7 +14,7 @@ To understand what mokens are about read the webpage about mokens here: https://
 
 Currently the beta version of the mokens website is running here: https://mokens.io/
 
-You can chat with me and ask question in the [Mokens Discord Channel[(https://discord.gg/ZyaqFhE).
+You can chat with me and ask question in the [Mokens Discord Channel](https://discord.gg/ZyaqFhE).
 
 ## Understanding the Mokens Contract
 
