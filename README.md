@@ -24,19 +24,19 @@ The contract has been gas-optimized. Specifically the mint function has been opt
 
 ### TokenId and Index
 
-Each moken has a tokenId that identifies it. tokenIds start at 0 and increment. The contract contains a list of all mokens via the `mapping (uint256 => Moken) private mokens;` mapping. 
+Each moken has a tokenId that identifies it. tokenIds start at 0 and increment. The contract contains a list of all mokens via the `mapping (uint256 => Moken) private mokens;` mapping. The position of each moken in the list/mapping is the same as its tokenId. This makes the implementation of the `tokenByIndex(uint256 _index)` function from the ERC721Enumerable interface very easy to implement:
 
-### Burning/Deleting Mokens
-
-You will notice that there is no burn/delete moken function in the contract. This functionality was left out because this functionality would require a mapping from tokenId to token index position which would add at least 20,000 more gas to the mint function and add gas other places. Keeping the tokenId the same as its index position in the list of all mokens reduces gas and simplifies the implementation of ERC721Enumerable. 
-
-So the implementation of tokenByIndex is very simple:
 ```  
 function tokenByIndex(uint256 _index) external view returns (uint256 tokenId) {
     require(_index < mokensLength, "TokenId at this index does not exist.");
     return _index;
 }
 ```
+
+### Burning/Deleting Mokens
+
+You will notice that there is no burn/delete moken function in the contract. This functionality was left out because this functionality would require a mapping from tokenId to token index position which would add at least 20,000 more gas to the mint function and add gas other places. Keeping the tokenId the same as its index position in the list of all mokens reduces gas and simplifies the implementation of functions such as tokenByIndex. 
+
 I think most users will not want to delete/burn their mokens and when they do they can get rid of them by selling them or sending them to another ethereum address.
 
 
