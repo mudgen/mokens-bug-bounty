@@ -20,7 +20,8 @@ The mokens contract implements the ERC721, ERC721Enumerable, ERC721Metadata and 
 
 The contract mints ERC721-based crypto-collectibles called "mokens".
 
-The contract has been gas-optimized. 
+The contract has been gas-optimized. Specifically the mint function has been optimized to require as little gas as possible while still implementing the needed functionality.
+
 
 
 
