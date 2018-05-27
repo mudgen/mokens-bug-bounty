@@ -24,7 +24,7 @@ The contract mints ERC721-based crypto-collectibles called "mokens".
 
 The contract has been gas-optimized. Specifically the mint function has been optimized to require as little gas as possible while still implementing the needed functionality.
 
-### The TokenId
+### The tokenId
 
 Each moken has a tokenId that identifies it. tokenIds start at 0 and increment. The contract contains a list of all mokens via the `mapping (uint256 => Moken) private mokens;` mapping. The position of each moken in the list/mapping is the same as its tokenId. This makes the implementation of the `tokenByIndex(uint256 _index)` function from the ERC721Enumerable interface very easy to implement:
 ```  
@@ -34,6 +34,18 @@ function tokenByIndex(uint256 _index) external view returns (uint256 tokenId) {
 }
 ```
 And it makes retrieving a moken by index or by tokenId the same thing since the index and tokenId are the same for each moken. It also means that mokens cannot be deleted because that would change the indexes of mokens in the list of all mokens.
+
+### era
+
+An 'Era' is a set of mokens that are created in a span of time. The first and current era is "Genesis". Newly minted mokens are Genesis mokens. When the next era starts no more Genesis mokens will be minted. [Read more about it from the about webpage.](https://mokens.io/about/eras)
+
+The era in which a moken is created is stored with the moken. 
+
+### dataHash
+
+The mint function has a bytes32 _dataHash argument. _dataHash contains a hash of data contents to be associated with the moken that is minted. This is a way to associate/connect off-chain data with a moken. For example the mokens.io website makes a keccak256 hash of the moken description, moken image bytes and moken attributes and passes that hash into the mint function of the mokens contract.
+
+
 
 ### Mokens
 
