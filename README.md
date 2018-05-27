@@ -22,7 +22,7 @@ The contract mints ERC721-based crypto-collectibles called "mokens".
 
 The contract has been gas-optimized. Specifically the mint function has been optimized to require as little gas as possible while still implementing the needed functionality.
 
-### TokenId and Index
+### The TokenId
 
 Each moken has a tokenId that identifies it. tokenIds start at 0 and increment. The contract contains a list of all mokens via the `mapping (uint256 => Moken) private mokens;` mapping. The position of each moken in the list/mapping is the same as its tokenId. This makes the implementation of the `tokenByIndex(uint256 _index)` function from the ERC721Enumerable interface very easy to implement:
 
