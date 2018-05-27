@@ -35,6 +35,10 @@ function tokenByIndex(uint256 _index) external view returns (uint256 tokenId) {
 ```
 And it makes retrieving a moken by index or by tokenId the same thing since the index and tokenId are the same for each moken. It also means that mokens cannot be deleted because that would change the indexes of mokens in the list of all mokens.
 
+### Mokens
+
+Within the scope of the Mokens Contract a moken consists of a tokenId, a name, a lowercase version of the name, an era, an owner address, an index position in the list of owner mokens, a 4-byte hash of data contents and a tokenURI.
+
 ### Burning/Deleting Mokens
 
 You will notice that there is no burn/delete moken function in the contract. This functionality was left out because this functionality would require a mapping from tokenId to index in the `mapping (uint256 => Moken) private mokens;` mapping which would add at least 20,000 more gas to the mint function and add gas other places. Keeping the tokenId the same as its index position in the list of all mokens reduces gas and simplifies the implementation of functions such as tokenByIndex. 
