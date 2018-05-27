@@ -33,7 +33,7 @@ function tokenByIndex(uint256 _index) external view returns (uint256 tokenId) {
     return _index;
 }
 ```
-I think most users will not want to delete/burn their mokens and when they do they can simply get rid of them by selling them or sending them to another ethereum address.
+I think most users will not want to delete/burn their mokens and when they do they can get rid of them by selling them or sending them to another ethereum address.
 
 
 
