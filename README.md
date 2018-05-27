@@ -33,7 +33,7 @@ function tokenByIndex(uint256 _index) external view returns (uint256 tokenId) {
     return _index;
 }
 ```
-And it makes retrieving a moken by index or by tokenId the same thing since the index and tokenId are the same for each moken.
+And it makes retrieving a moken by index or by tokenId the same thing since the index and tokenId are the same for each moken. It also means that mokens cannot be deleted because that would change the indexes of mokens in the list of all mokens.
 
 ### Burning/Deleting Mokens
 
