@@ -47,7 +47,7 @@ The mint function has a bytes32 _linkHash argument. _linkHash contains a hash of
 
 ### Moken Data
 
-Each moken stores an instance of a Moken struct. The Moken struct consists of a moken name and a 32 byte storage slot called "data". The "data" storage variable contains the first 8 bytes from the _linkHash variable, a 2 byte unsigned integer that is an index into the list of all eras which is used to get the era for the moken, a two byte unsigned integer that is the position of the moken in the list of mokens owned by the owner address, and the address of the owner of the moken. Storing all these data in one 256 bit storage slot saves gas when minting, and saves gas when reading this data from storage.
+Each moken stores an instance of a Moken struct. The Moken struct consists of a moken name and a 32 byte storage slot called "data". The "data" storage variable contains the first 8 bytes from the _linkHash variable, a 2 byte unsigned integer that is an index into the list of all eras which is used to get the era for the moken, a two byte unsigned integer that is the position of the moken in the list of mokens owned by the owner address, and the address of the owner of the moken. Storing all this data in one 256 bit storage slot saves gas when minting, and saves gas when reading this data from storage.
 
 ### Mokens
 
