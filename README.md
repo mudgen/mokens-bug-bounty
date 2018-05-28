@@ -41,7 +41,7 @@ An 'Era' is a set of mokens that are created in a span of time. The first and cu
 
 The era in which a moken is created is stored with the moken. 
 
-### _linkData
+### _linkHash
 
 The mint function has a bytes32 _linkHash argument. _linkHash contains a hash of data contents to be associated/linked with the moken that is minted. This is a way to associate/connect off-chain data with a moken. For example the mokens.io website makes a keccak256 hash of the moken description, moken image bytes and moken attributes and passes that hash into the mint function of the mokens contract.
 
