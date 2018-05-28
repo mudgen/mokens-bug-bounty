@@ -41,15 +41,17 @@ An 'Era' is a set of mokens that are created in a span of time. The first and cu
 
 The era in which a moken is created is stored with the moken. 
 
-### dataHash
+### _linkData
 
-The mint function has a bytes32 _dataHash argument. _dataHash contains a hash of data contents to be associated with the moken that is minted. This is a way to associate/connect off-chain data with a moken. For example the mokens.io website makes a keccak256 hash of the moken description, moken image bytes and moken attributes and passes that hash into the mint function of the mokens contract.
+The mint function has a bytes32 _linkHash argument. _linkHash contains a hash of data contents to be associated/linked with the moken that is minted. This is a way to associate/connect off-chain data with a moken. For example the mokens.io website makes a keccak256 hash of the moken description, moken image bytes and moken attributes and passes that hash into the mint function of the mokens contract.
 
+### Moken Data
 
+Each moken stores an instance of a Moken struct. The Moken struct consists of a moken name and a 32 byte storage slot called "data". The "data" storage variable contains the first 8 bytes from the _linkHash variable, a 2 byte unsigned integer that is an index into the list of all eras which is used to get the era for the moken, a two byte unsigned integer that is the position of the moken in the list of mokens owned by the owner address, and the address of the owner of the moken. Storing all these data in one 256 bit storage slot saves gas when minting, and saves gas when reading this data from storage.
 
 ### Mokens
 
-Within the scope of the Mokens Contract a moken consists of a tokenId, a name, a lowercase version of the name, an era, an owner address, an index position in the list of owner mokens, a 4-byte hash of data contents and a tokenURI.
+Within the scope of the Mokens Contract a moken consists of a tokenId, a name, a lowercase version of the name, an era, an owner address, an index position in the list of owner mokens, an 8-byte hash of data contents and a tokenURI.
 
 ### Burning/Deleting Mokens
 
