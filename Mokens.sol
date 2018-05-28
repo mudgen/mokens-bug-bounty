@@ -103,7 +103,7 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
     /* Token Data ***********************************************************/
     struct Moken {
         string name;
-        uint256 dataHash;
+        uint256 data;
     }
     //tokenId to moken
     mapping (uint256 => Moken) private mokens;
@@ -114,7 +114,7 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
 
     uint256 constant UINT16_MASK = 0x000000000000000000000000000000000000000000000000000000000000ffff;
     uint256 constant MOKEN_DATA_MASK = 0xffffffffffffffff000000000000000000000000000000000000000000000000;
-    uint256 constant MOKEN_HASH_MASK = 0x0000000000000000ffffffffffffffffffffffffffffffffffffffffffffffff;
+    uint256 constant MOKEN_LINK_HASH_MASK = 0x0000000000000000ffffffffffffffffffffffffffffffffffffffffffffffff;
     uint256 constant MAX_MOKENS = 4294967296;
     uint256 constant MAX_OWNER_MOKENS = 65536;
 
@@ -141,7 +141,7 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
     }
 
     modifier onlyApproved(uint256 _tokenId) {
-        address owner = address(mokens[_tokenId].dataHash);
+        address owner = address(mokens[_tokenId].data);
         require(owner != address(0), "The tokenId does not exist.");
         require(msg.sender == owner || tokenApprovals[_tokenId] == msg.sender || operatorApprovals[owner][msg.sender],
             "Must be the owner or approved to take this action.");
@@ -182,13 +182,13 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
     }
 
     function ownerOf(uint256 _tokenId) external view returns (address owner) {
-        owner = address(mokens[_tokenId].dataHash);
+        owner = address(mokens[_tokenId].data);
         require(owner != address(0), "The tokenId does not exist.");
         return owner;
     }
 
     function approve(address _to, uint256 _tokenId) external {
-        address owner = address(mokens[_tokenId].dataHash);
+        address owner = address(mokens[_tokenId].data);
         require(owner != address(0), "The tokenId does not exist.");
         require(msg.sender == owner || operatorApprovals[owner][msg.sender], "Must be the owner or approved operator.");
 
@@ -199,7 +199,7 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
     }
 
     function getApproved(uint256 _tokenId) external view returns (address approvedAddress) {
-        address owner = address(mokens[_tokenId].dataHash);
+        address owner = address(mokens[_tokenId].data);
         require(owner != address(0), "The tokenId does not exist.");
         return tokenApprovals[_tokenId];
     }
@@ -236,8 +236,8 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
     function clearApprovalAndTransfer(address _from, address _to, uint256 _tokenId, bytes _data, bool _safe) private {
         require(_from != address(0), "_from cannot be the 0 address.");
         require(_to != address(0), "_to cannot be the 0 address.");
-        uint256 dataHash = mokens[_tokenId].dataHash;
-        address owner = address(dataHash);
+        uint256 data = mokens[_tokenId].data;
+        address owner = address(data);
         require(owner == _from, "The tokenId is not owned by _from.");
 
         //Clear approval
@@ -251,19 +251,19 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
         //    in ownedTokens[_from]
         uint256 lastTokenIndex = ownedTokens[_from].length - 1;
         uint256 lastTokenId = ownedTokens[_from][lastTokenIndex];
-        uint256 tokenIndex = dataHash >> 160 & UINT16_MASK;
+        uint256 tokenIndex = data >> 160 & UINT16_MASK;
         ownedTokens[_from][tokenIndex] = uint32(lastTokenId);
         // 2. We remove lastTokenId from the end of ownedTokens[_from]
         ownedTokens[_from].length--;
         // 3. We set lastTokeId to point to its new position in ownedTokens[_from]
-        uint256 lastTokenIdDataHash = mokens[lastTokenId].dataHash;
-        mokens[lastTokenId].dataHash = lastTokenIdDataHash & 0xffffffffffffffffffff0000ffffffffffffffffffffffffffffffffffffffff | tokenIndex << 160;
+        uint256 lastTokenIdData = mokens[lastTokenId].data;
+        mokens[lastTokenId].data = lastTokenIdData & 0xffffffffffffffffffff0000ffffffffffffffffffffffffffffffffffffffff | tokenIndex << 160;
 
         //adding the tokenId
         uint256 ownedTokensLength = ownedTokens[_to].length;
         // prevents 16 bit overflow
         require(ownedTokensLength < MAX_OWNER_MOKENS, "An single owner address cannot possess more than 65,536 mokens.");
-        mokens[_tokenId].dataHash = dataHash & 0xffffffffffffffffffff00000000000000000000000000000000000000000000 | ownedTokensLength << 160 | uint256(_to);
+        mokens[_tokenId].data = data & 0xffffffffffffffffffff00000000000000000000000000000000000000000000 | ownedTokensLength << 160 | uint256(_to);
         ownedTokens[_to].push(uint32(_tokenId));
 
         emit Transfer(_from, _to, _tokenId);
@@ -287,7 +287,7 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
     }
 
     function tokenOfOwnerByIndex(address _owner, uint256 _index) external view returns (uint256 tokenId) {
-        require(_index < ownedTokens[_owner].length, "Owner does not own a token at this index.");
+        require(_index < ownedTokens[_owner].length, "Owner does not own a moken at this index.");
         return ownedTokens[_owner][_index];
     }
 
@@ -296,7 +296,7 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
     }
 
     function tokenByIndex(uint256 _index) external view returns (uint256 tokenId) {
-        require(_index < mokensLength, "Token at this index does not exist.");
+        require(_index < mokensLength, "TokenId at this index does not exist.");
         return _index;
     }
     /******************************************************************************/
@@ -459,7 +459,7 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
         address indexed owner,
         bytes32 indexed era,
         string mokenName,
-        bytes32 datahash,
+        bytes32 data,
         uint256 tokenId,
         bytes32 currencyName,
         uint256 price
@@ -514,7 +514,7 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
     //for name look ups.
     mapping (string => uint256) private tokenByName_;
 
-    function mint(address _owner, string _mokenName, bytes32 _dataHash) external payable returns (uint256 tokenId) {
+    function mint(address _owner, string _mokenName, bytes32 _linkHash) external payable returns (uint256 tokenId) {
 
         require(_owner != address(0), "Owner cannot be the 0 address.");
 
@@ -539,11 +539,11 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
 
         // adding the current era index, ownedTokenIndex and owner address to datahash
         // this saves gas for each mint.
-        uint256 dataHash = uint256(_dataHash) & MOKEN_DATA_MASK | eraIndex_ << 176 | ownedTokensLength << 160 | uint256(_owner);
+        uint256 data = uint256(_linkHash) & MOKEN_DATA_MASK | eraIndex_ << 176 | ownedTokensLength << 160 | uint256(_owner);
         
         // create moken
         mokens[tokenId].name = _mokenName;
-        mokens[tokenId].dataHash = dataHash;
+        mokens[tokenId].data = data;
         tokenByName_[lowerMokenName] = tokenId+1;
 
         //add moken to the specific owner
@@ -556,7 +556,7 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
     
         //emit events
         emit Transfer(address(0), _owner, tokenId);
-        emit Mint(this, _owner, eras[eraIndex_], _mokenName, bytes32(dataHash), tokenId, "Ether", pricePaid);
+        emit Mint(this, _owner, eras[eraIndex_], _mokenName, bytes32(data), tokenId, "Ether", pricePaid);
         emit MintPriceChange(currentMintPrice + mintStepPrice_);
 
         //send minter the change if any
@@ -603,7 +603,7 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
     }
 
     //Enables the ability to accept other currency/tokens from other contracts for payment in the future.
-    function contractMint(address _owner, string _mokenName, bytes32 _dataHash, bytes32 _currencyName, uint256 _pricePaid) external returns (uint256 tokenId) {
+    function contractMint(address _owner, string _mokenName, bytes32 _linkHash, bytes32 _currencyName, uint256 _pricePaid) external returns (uint256 tokenId) {
 
         require(_owner != address(0), "Owner cannot be the 0 address.");
         require(isMintContract(msg.sender),"Not an approved mint contract.");
@@ -621,20 +621,20 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
         // prevents 16 bit overflow
         require(ownedTokensLength < MAX_OWNER_MOKENS, "An single owner address cannot possess more than 65,536 mokens.");
 
-        // adding the current era index, ownedTokenIndex and owner address to datahash
+        // adding the current era index, ownedTokenIndex and owner address to data
         // this saves gas for each mint.
-        uint256 dataHash = uint256(_dataHash) & MOKEN_DATA_MASK | eraIndex_ << 176 | ownedTokensLength << 160 | uint256(_owner);
+        uint256 data = uint256(_linkHash) & MOKEN_DATA_MASK | eraIndex_ << 176 | ownedTokensLength << 160 | uint256(_owner);
 
         // create moken
         mokens[tokenId].name = _mokenName;
-        mokens[tokenId].dataHash = dataHash;
+        mokens[tokenId].data = data;
         tokenByName_[lowerMokenName] = mokensLength_;
 
         //add moken to the specific owner
         ownedTokens[_owner].push(uint32(tokenId));
 
         emit Transfer(address(0), _owner, tokenId);
-        emit Mint(msg.sender, _owner, eras[eraIndex_], _mokenName, bytes32(dataHash), tokenId, _currencyName, _pricePaid);
+        emit Mint(msg.sender, _owner, eras[eraIndex_], _mokenName, bytes32(data), tokenId, _currencyName, _pricePaid);
         emit MintPriceChange(mintBasePrice + (mokensLength_ * mintStepPrice));
         
         return tokenId;
@@ -668,32 +668,32 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
     /******************************************************************************/
     /* Mokens  **************************************************/
 
-    event DataHashChange(
+    event LinkHashChange(
         uint256 indexed tokenId,
-        bytes32 datahash
+        bytes32 linkHash
     );
 
-    event DataHashPriceChange(
+    event LinkHashPriceChange(
         uint256 price
     );
 
-    uint256 public updateDataHashPrice_ = 0;
+    uint256 public updateLinkHashPrice_ = 0;
 
-    function updateDataHashPrice(uint256 _updateDataHashPrice) external onlyManager {
-        updateDataHashPrice_ = _updateDataHashPrice;
-        emit DataHashPriceChange(_updateDataHashPrice);
+    function updateLinkHashPrice(uint256 _updateLinkHashPrice) external onlyManager {
+        updateLinkHashPrice_ = _updateLinkHashPrice;
+        emit LinkHashPriceChange(_updateLinkHashPrice);
     }
 
-    // changes the dataHash of a moken
-    function updateDataHash(uint256 _tokenId, bytes32 _dataHash) external onlyApproved(_tokenId) payable {
-        uint256 price = updateDataHashPrice_;
+    // changes the data of a moken
+    function updateLinkHash(uint256 _tokenId, bytes32 _linkHash) external onlyApproved(_tokenId) payable {
+        uint256 price = updateLinkHashPrice_;
         require(msg.value >= price, "Paid ether is less than the datahash update price.");
-        uint256 dataHash = mokens[_tokenId].dataHash & MOKEN_HASH_MASK | uint256(_dataHash) & MOKEN_DATA_MASK;
-        mokens[_tokenId].dataHash = dataHash;
+        uint256 data = mokens[_tokenId].data & MOKEN_LINK_HASH_MASK | uint256(_linkHash) & MOKEN_DATA_MASK;
+        mokens[_tokenId].data = data;
         if(msg.value > price) {
             msg.sender.transfer(msg.value - price);
         }
-        emit DataHashChange(_tokenId, bytes32(dataHash));
+        emit LinkHashChange(_tokenId, bytes8(data));
     }
 
     function mokenNameExists(string _mokenName) external view returns(bool) {
@@ -706,42 +706,42 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
         return tokenId-1;
     }
 
-    function mokenDataHash(uint256 _tokenId) external view returns (bytes32 dataHash) {
-        dataHash = bytes32(mokens[_tokenId].dataHash);
-        require(dataHash != 0, "The tokenId does not exist.");
-        return dataHash;
+    function mokenData(uint256 _tokenId) external view returns (bytes32 data) {
+        data = bytes32(mokens[_tokenId].data);
+        require(data != 0, "The tokenId does not exist.");
+        return data;
     }
 
-    function eraFromDataHash(bytes32 _dataHash) public view returns(bytes32 era) {
-        return eras[uint256(_dataHash) >> 176 & UINT16_MASK];
+    function eraFromMokenData(bytes32 _data) public view returns(bytes32 era) {
+        return eras[uint256(_data) >> 176 & UINT16_MASK];
     }
 
-    function eraFromDataHash(uint256 _dataHash) public view returns(bytes32 era) {
-        return eras[_dataHash >> 176 & UINT16_MASK];
+    function eraFromMokenData(uint256 _data) public view returns(bytes32 era) {
+        return eras[_data >> 176 & UINT16_MASK];
     }
 
     function mokenEra(uint256 _tokenId) external view returns(bytes32 era) {
-        uint256 dataHash = mokens[_tokenId].dataHash;
-        require(dataHash != 0, "The tokenId does not exist.");
-        return eraFromDataHash(dataHash);
+        uint256 data = mokens[_tokenId].data;
+        require(data != 0, "The tokenId does not exist.");
+        return eraFromMokenData(data);
     }
 
     function moken(uint256 _tokenId) external view 
-    returns (string memory mokenName, bytes32 era, bytes32 dataHash, address owner) {
-        dataHash = bytes32(mokens[_tokenId].dataHash);
-        require(dataHash != 0, "The tokenId does not exist.");
+    returns (string memory mokenName, bytes32 era, bytes32 data, address owner) {
+        data = bytes32(mokens[_tokenId].data);
+        require(data != 0, "The tokenId does not exist.");
         return (
             mokens[_tokenId].name, 
-            eraFromDataHash(dataHash),
-            dataHash, 
-            address(dataHash)
+            eraFromMokenData(data),
+            data, 
+            address(data)
         );
     }
     
     function mokenBytes32(uint256 _tokenId) external view 
-    returns (bytes32 mokenNameBytes32, bytes32 era, bytes32 dataHash, address owner) {
-        dataHash = bytes32(mokens[_tokenId].dataHash);
-        require(dataHash != 0, "The tokenId does not exist.");
+    returns (bytes32 mokenNameBytes32, bytes32 era, bytes32 data, address owner) {
+        data = bytes32(mokens[_tokenId].data);
+        require(data != 0, "The tokenId does not exist.");
         bytes memory mokenNameBytes = bytes(mokens[_tokenId].name);
         require(mokenNameBytes.length != 0, "The tokenId does not exist.");
         assembly {
@@ -749,21 +749,21 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
         }
         return (
             mokenNameBytes32, 
-            eraFromDataHash(dataHash),
-            dataHash, 
-            address(dataHash)
+            eraFromMokenData(data),
+            data, 
+            address(data)
         );
     }
     
     
     function mokenNoName(uint256 _tokenId) external view 
-    returns (bytes32 era, bytes32 dataHash, address owner) {
-        dataHash = bytes32(mokens[_tokenId].dataHash);
-        require(dataHash != 0, "The tokenId does not exist.");
+    returns (bytes32 era, bytes32 data, address owner) {
+        data = bytes32(mokens[_tokenId].data);
+        require(data != 0, "The tokenId does not exist.");
         return (
-            eraFromDataHash(dataHash),
-            dataHash, 
-            address(dataHash)
+            eraFromMokenData(data),
+            data, 
+            address(data)
         );
     }
 
