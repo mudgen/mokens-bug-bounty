@@ -8,7 +8,7 @@ To report a bug create an issue in this repository about it.
 
 Generally, any useful comments, about bugs or not, are appreciated.
 
-The bug bounty starts now and ends on 30 May 2018 or potentially later than that.
+The bug bounty starts 28 May 2018 and ends on 30 May 2018 or potentially later than that.
 
 To understand what mokens are about read the webpage about mokens here: https://mokens.io/about
 
@@ -75,8 +75,8 @@ Only contracts that have been added to the mintContracts array via the `addMintC
 
 ### Manager
 
-The Mokens Contract has a manager address and a contractManager address. They have equal rights and control parts of the contract, like starting the next era and setting the mintBasePrice and mintStepPrice.
+The Mokens Contract has a manager address and a contractManager address. They have equal rights and control parts of the contract like starting the next era and setting the mintBasePrice and mintStepPrice.
 
-The first manager address is a user account. The second address is a contract. The purpose of the contractManager address is to enable new functionality for mokens. In the future I want to create a contract that people use to vote with their mokens on the mintBasePrice and mintStepPrice and vote on when the next era starts and what it is. The contractManager variable will be set to the voting contract address so that the voting contract has the power to start the next era, set the mint base price and ment step price and do other things.
+The first manager address is a user account. The second address is a contract. The purpose of the contractManager address is to enable new functionality for mokens. In the future I want to create a contract that people use to vote with their mokens on the mintBasePrice and mintStepPrice and vote on when the next era starts and what it is. The contractManager variable will be set to the voting contract address so that the voting contract has the power to start the next era, set the mintBasePrice and mintStepPrice and do other things.
 
 
