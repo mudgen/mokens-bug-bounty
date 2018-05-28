@@ -69,7 +69,7 @@ It is noted here that people are supposed to mint mokens at the current price as
 
 ### Mint Contracts
 
-The Mokens Contract has the notion of mint contracts. Mint contracts are future contracts that will use the Mokens Contract to mint mokens. The Mokens Contract is designed to be used by other ethereum contracts for games and other systems. The `contractMint` function enables other third-party contracts to mint mokens and enables the Mokens Contract to accept other forms of payment to mint mokens such as ERC20 tokens. Contact me at nick@mokens.io if you are interested in integrating mokens into your contracts.
+The Mokens Contract has the notion of mint contracts. Mint contracts are ethereum contracts that use the Mokens Contract to mint mokens. The Mokens Contract is designed to be used by other ethereum contracts for games and other systems. The `contractMint` function enables third-party contracts to mint mokens and enables the Mokens Contract to accept other forms of payment to mint mokens such as ERC20 tokens. Contact me at nick@mokens.io if you are interested in integrating mokens into your contracts.
 
 Only contracts that have been added to the mintContracts array via the `addMintContract(address _contract)` function can mint mokens.
 
