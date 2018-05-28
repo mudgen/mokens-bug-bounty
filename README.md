@@ -65,7 +65,7 @@ The price to mint a moken is determined by a base price plus the number of token
 
 Since the next tokenId increments each time a mint occurs the price for mokens increases each time a mint occurs. A race condition is possible (without mitigation) when multiple people try to mint a moken at the same time. If multiple people try to mint a moken at the same time one of the mint transactions will go through and the others will throw because the mint price went up. To prevent these transactions from throwing a mint price buffer exists. The mint price buffer enables mint transactions to go through if they are within the buffer range. 
 
-It is noted here that people are supposed to mint mokens at the current price as given from the `mintPrice()` function. It is possible for morally corrupt people to get a slight discount by paying a little less than the price given from the `mintPrice()` function, however they will not get a discount from their conscience if they have one, and karma will eventually get them if they don't.
+It is noted here that people are supposed to mint mokens at the current price as given from the `mintPrice()` function. Though it is possible to do, people should not take advantage of the mint price buffer to pay slightly less than the current price.
 
 
 
