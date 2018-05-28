@@ -67,6 +67,10 @@ Since the next tokenId increments each time a mint occurs the price for mokens i
 
 It is noted here that people are supposed to mint mokens at the current price as given from the `mintPrice()` function. People should not take advantage of the mint price buffer to pay slightly less than the current price. However, minting new mokens when lots of other people are minting mokens at the same time is a legit way to get a discount.
 
+### Mint Contracts
 
+The Mokens Contract has the notion of mint contracts. Mint contracts are future contracts that will use the Mokens Contract to mint mokens. The Mokens Contract is designed to be used by other ethereum contracts for games and other systems. The `contractMint` function enables other third-party contracts to mint mokens and enables the Mokens Contract to accept other forms of payment to mint mokens such as ERC20 tokens. Contact me at nick@mokens.io if you are interested in integrating mokens into your contracts.
+
+Only contracts that have been added to the mintContracts array via the `addMintContract(address _contract)` function can mint mokens.
 
 
