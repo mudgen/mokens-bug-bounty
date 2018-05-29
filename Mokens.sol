@@ -68,12 +68,9 @@ interface ERC165 {
 contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
     uint256 public blockNum;
 
-    /* Constructor ***********************************************************/
     constructor() public {
 
         blockNum = block.number;
-
-        //Management
         manager = msg.sender;
         startNextEra_("Genesis");
 
@@ -104,8 +101,8 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
     mapping (address => uint32[]) private ownedTokens;
 
     uint256 constant UINT16_MASK = 0x000000000000000000000000000000000000000000000000000000000000ffff;
-    uint256 constant MOKEN_DATA_MASK = 0xffffffffffffffff000000000000000000000000000000000000000000000000;
-    uint256 constant MOKEN_LINK_HASH_MASK = 0x0000000000000000ffffffffffffffffffffffffffffffffffffffffffffffff;
+    uint256 constant MOKEN_LINK_HASH_MASK = 0xffffffffffffffff000000000000000000000000000000000000000000000000;
+    uint256 constant MOKEN_DATA_MASK = 0x0000000000000000ffffffffffffffffffffffffffffffffffffffffffffffff;
     uint256 constant MAX_MOKENS = 4294967296;
     uint256 constant MAX_OWNER_MOKENS = 65536;
 
@@ -251,10 +248,10 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
         mokens[lastTokenId].data = lastTokenIdData & 0xffffffffffffffffffff0000ffffffffffffffffffffffffffffffffffffffff | tokenIndex << 160;
 
         //adding the tokenId
-        uint256 ownedTokensLength = ownedTokens[_to].length;
+        uint256 ownedTokensIndex = ownedTokens[_to].length;
         // prevents 16 bit overflow
-        require(ownedTokensLength < MAX_OWNER_MOKENS, "An single owner address cannot possess more than 65,536 mokens.");
-        mokens[_tokenId].data = data & 0xffffffffffffffffffff00000000000000000000000000000000000000000000 | ownedTokensLength << 160 | uint256(_to);
+        require(ownedTokensIndex < MAX_OWNER_MOKENS, "An single owner address cannot possess more than 65,536 mokens.");
+        mokens[_tokenId].data = data & 0xffffffffffffffffffff00000000000000000000000000000000000000000000 | ownedTokensIndex << 160 | uint256(_to);
         ownedTokens[_to].push(uint32(_tokenId));
 
         emit Transfer(_from, _to, _tokenId);
@@ -310,7 +307,7 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
     string private defaultURIStart = "https://api.mokens.io/moken/";
     string private defaultURIEnd = ".json";
 
-    function setDefaultURIStart(string _defaultUILStart) external onlyManager {
+    function setDefaultURIStart(string _defaultURIStart) external onlyManager {
         defaultURIStart = _defaultURIStart;
     }
 
@@ -386,10 +383,11 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
         uint256 startTokenId
     );
 
-
+    // index to era
     mapping (uint256 => bytes32) private eras;
     uint256 private eraLength = 0;
 
+    // era to index+1
     mapping (bytes32 => uint256) private eraIndex;
 
     function startNextEra_(bytes32 _eraName) private returns (uint256 index, uint256 startTokenId) {
@@ -403,9 +401,17 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
         return (index, startTokenId);
     }
 
-    function startNextEra(bytes32 _eraName,  uint256 _mintBasePrice) external onlyManager returns (uint256 index, uint256 startTokenId) {
-        setMintBasePrice_(_mintBasePrice);
-        return startNextEra_(_eraName);
+    // It is predicted that often a new era comes with a mint price change
+    function startNextEra(bytes32 _eraName,  uint256 _mintBasePrice, uint256 _mintStepPrice, uint256 _mintPriceBuffer) external onlyManager 
+    returns (uint256 index, uint256 startTokenId, uint256 mintPrice) {
+        mintBasePrice = _mintBasePrice;
+        mintStepPrice = _mintStepPrice;
+        mintPriceBuffer = _mintPriceBuffer;
+        mintPrice = _mintBasePrice + (mokensLength * _mintStepPrice);
+        emit MintPriceConfigurationChange(mintPrice, _mintBasePrice, _mintStepPrice, _mintPriceBuffer);
+        emit MintPriceChange(mintPrice);
+        (index, startTokenId) = startNextEra_(_eraName);
+        return (index, startTokenId, mintPrice);
     }
 
     function startNextEra(bytes32 _eraName) external onlyManager returns (uint256 index, uint256 startTokenId) {
@@ -456,42 +462,28 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
         uint256 price
     );
 
+    
     event MintPriceChange(
-        uint256 newMintPrice
+        uint256 mintPrice
+    );
+
+    event MintPriceConfigurationChange(
+        uint256 mintPrice,
+        uint256 mintPriceBuffer,
+        uint256 mintBasePrice,
+        uint256 mintStepPrice
     );
 
     uint256 public mintBasePrice = 10000 szabo;
     uint256 public mintStepPrice = 500 szabo;
     uint256 public mintPriceBuffer = 10000 szabo;
 
-
-    function setMintBasePrice_(uint256 _mintBasePrice) private returns(uint256 mintPrice) {
-        mintBasePrice = _mintBasePrice;
-        mintPrice = _mintBasePrice + (mokensLength * mintStepPrice);
-        emit MintPriceChange(mintPrice);
-        return mintPrice;
-    }
-
-    function setMintBasePrice(uint256 _mintBasePrice) external onlyManager returns(uint256 mintPrice) {
-        return setMintBasePrice_(_mintBasePrice);
-    }
-
-    function setMintStepPrice(uint256 _mintStepPrice) external onlyManager returns(uint256 mintPrice) {
-        mintStepPrice = _mintStepPrice;
-        mintPrice = mintBasePrice + (mokensLength * _mintStepPrice);
-        emit MintPriceChange(mintPrice);
-        return mintPrice;
-    }
-
-    function setMintPriceBuffer(uint256 _mintPriceBuffer) external onlyManager {
-        mintPriceBuffer = _mintPriceBuffer;
-    }
-
-    function setMintPrice(uint256 _mintPriceBuffer, uint256 _mintBasePrice, uint256 _mintStepPrice) external onlyManager returns(uint256 mintPrice) {
-        mintPriceBuffer = _mintPriceBuffer;
+    function setMintPrice(uint256 _mintBasePrice, uint256 _mintStepPrice, uint256 _mintPriceBuffer) external onlyManager returns(uint256 mintPrice) {
         mintBasePrice = _mintBasePrice;
         mintStepPrice = _mintStepPrice;
+        mintPriceBuffer = _mintPriceBuffer;
         mintPrice = _mintBasePrice + (mokensLength * _mintStepPrice);
+        emit MintPriceConfigurationChange(mintPrice, _mintBasePrice, _mintStepPrice, _mintPriceBuffer);
         emit MintPriceChange(mintPrice);
         return mintPrice;
     }
@@ -500,9 +492,7 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
         return mintBasePrice + (mokensLength * mintStepPrice);
     }
 
-    //moken name to tokenId
-    //indexing starting at 1 instead of 0 because 0 is error condition
-    //for name look ups.
+    //moken name to tokenId+1
     mapping (string => uint256) private tokenByName_;
 
     function mint(address _owner, string _mokenName, bytes32 _linkHash) external payable returns (uint256 tokenId) {
@@ -524,13 +514,13 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
         require(tokenByName_[lowerMokenName] == 0, "Moken name already exists.");
 
         uint256 eraIndex_ = eraLength-1;
-        uint256 ownedTokensLength = ownedTokens[_owner].length;
+        uint256 ownedTokensIndex = ownedTokens[_owner].length;
         // prevents 16 bit overflow
-        require(ownedTokensLength < MAX_OWNER_MOKENS, "An single owner address cannot possess more than 65,536 mokens.");
+        require(ownedTokensIndex < MAX_OWNER_MOKENS, "An single owner address cannot possess more than 65,536 mokens.");
 
-        // adding the current era index, ownedTokenIndex and owner address to datahash
+        // adding the current era index, ownedTokenIndex and owner address to data
         // this saves gas for each mint.
-        uint256 data = uint256(_linkHash) & MOKEN_DATA_MASK | eraIndex_ << 176 | ownedTokensLength << 160 | uint256(_owner);
+        uint256 data = uint256(_linkHash) & MOKEN_LINK_HASH_MASK | eraIndex_ << 176 | ownedTokensIndex << 160 | uint160(_owner);
         
         // create moken
         mokens[tokenId].name = _mokenName;
@@ -561,7 +551,7 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
     address[] private mintContracts;
     mapping (address => uint256) private mintContractIndex;
    
-   
+    // add contract to list of contracts that can mint mokens 
     function addMintContract(address _contract) external onlyManager {
         require(isContract(_contract), "Address is not a contract.");
         require(mintContractIndex[_contract] == 0, "Contract already added.");
@@ -593,7 +583,8 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
         return mintContracts[index];
     }
 
-    //Enables the ability to accept other currency/tokens from other contracts for payment in the future.
+    // enables third-party contracts to mint mokens.
+    // enables the ability to accept other currency/tokens for payment.
     function contractMint(address _owner, string _mokenName, bytes32 _linkHash, bytes32 _currencyName, uint256 _pricePaid) external returns (uint256 tokenId) {
 
         require(_owner != address(0), "Owner cannot be the 0 address.");
@@ -608,13 +599,13 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
         require(tokenByName_[lowerMokenName] == 0, "Moken name already exists.");
 
         uint256 eraIndex_ = eraLength-1;
-        uint256 ownedTokensLength = ownedTokens[_owner].length;
+        uint256 ownedTokensIndex = ownedTokens[_owner].length;
         // prevents 16 bit overflow
-        require(ownedTokensLength < MAX_OWNER_MOKENS, "An single owner address cannot possess more than 65,536 mokens.");
+        require(ownedTokensIndex < MAX_OWNER_MOKENS, "An single owner address cannot possess more than 65,536 mokens.");
 
         // adding the current era index, ownedTokenIndex and owner address to data
         // this saves gas for each mint.
-        uint256 data = uint256(_linkHash) & MOKEN_DATA_MASK | eraIndex_ << 176 | ownedTokensLength << 160 | uint256(_owner);
+        uint256 data = uint256(_linkHash) & MOKEN_LINK_HASH_MASK | eraIndex_ << 176 | ownedTokensIndex << 160 | uint160(_owner);
 
         // create moken
         mokens[tokenId].name = _mokenName;
@@ -675,16 +666,17 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
         emit LinkHashPriceChange(_updateLinkHashPrice);
     }
 
-    // changes the data of a moken
+    // changes the link hash of a moken
+    // this enables metadata/content data to be changed for mokens.
     function updateLinkHash(uint256 _tokenId, bytes32 _linkHash) external onlyApproved(_tokenId) payable {
         uint256 price = updateLinkHashPrice_;
         require(msg.value >= price, "Paid ether is less than the datahash update price.");
-        uint256 data = mokens[_tokenId].data & MOKEN_LINK_HASH_MASK | uint256(_linkHash) & MOKEN_DATA_MASK;
+        uint256 data = mokens[_tokenId].data & MOKEN_DATA_MASK | uint256(_linkHash) & MOKEN_LINK_HASH_MASK;
         mokens[_tokenId].data = data;
         if(msg.value > price) {
             msg.sender.transfer(msg.value - price);
         }
-        emit LinkHashChange(_tokenId, bytes8(data));
+        emit LinkHashChange(_tokenId, bytes32(data));
     }
 
     function mokenNameExists(string _mokenName) external view returns(bool) {
@@ -771,8 +763,5 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
             mokenNameBytes32_ := mload(add(mokenNameBytes, 32))
         }
         return mokenNameBytes32_;
-    }
-    
+    }   
 }
-
-
