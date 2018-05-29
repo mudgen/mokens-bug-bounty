@@ -10,7 +10,7 @@ Generally, any useful comments, about bugs or not, are appreciated.
 
 The bug bounty starts 28 May 2018 and ends on 1 June 2018 or potentially later than that.
 
-To understand what mokens are about read the webpage about mokens here: https://mokens.io/about
+Mokens is a web interface and ethereum smart contract that enables regular people to design and create their own cryptocollectibles. But there is more to it than that so read the webpage about mokens here: https://mokens.io/about
 
 Currently the beta version of the mokens website is running here: https://mokens.io/
 
