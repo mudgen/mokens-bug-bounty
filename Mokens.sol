@@ -1,14 +1,5 @@
 pragma solidity 0.4.24;
 
-contract Test {
-    
-    Mokens mokens = Mokens(0xbA8dC1a692093d8aBD34e12aa05a4fE691121bB6);
-    uint256 public tokenId;
-    function mint(string name) external {
-        tokenId = mokens.contractMint(0xCA35b7d915458EF540aDe6068dFe2F44E8fa733c, name, 0xca35b7d915458ef540ade6068dfe2f44e8fa733cca35b7d915458ef540ade606, 0x636f6f6c636f696e, 10);
-    }
-}
-
 contract ERC721Receiver {
     /// @dev Magic value to be returned upon successful reception of an NFT
     ///  Equals to bytes4(keccak256("onERC721Received(address,uint256,bytes)"))
