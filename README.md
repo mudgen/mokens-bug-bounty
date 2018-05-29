@@ -51,7 +51,7 @@ Each moken stores an instance of a Moken struct. The Moken struct consists of a 
 
 ### Moken Names Are Unique
 
-The `validateAndLower(string _s)` function converts a moken name to lower case and throws if the moken name contains any non-printing ascii characters or certain whitespace ascii characters such as \n or a space at the beginning or end of it. This function and the `tokenByName_` mapping are used to prevent any moken from having the same name. So all moken names are unique in a case insensitive way and cannot contain non-printing characters or unncessary ascii whitespace characters. Moken names can contain the space character between other characters.
+The `validateAndLower(string _s)` function converts a moken name to lower case and throws if the moken name contains any non-printing ascii characters or certain whitespace ascii characters such as \n or a space at the beginning or end of it. This function and the `tokenByName_` mapping are used to prevent any moken from having the same name. So all moken names are unique in a case insensitive way and cannot contain non-printing characters or unncessary ascii whitespace characters. Moken names can contain the space character between other non-space characters.
 
 ### Mokens
 
