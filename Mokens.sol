@@ -763,5 +763,8 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
             mokenNameBytes32_ := mload(add(mokenNameBytes, 32))
         }
         return mokenNameBytes32_;
-    }   
+    }
+    
 }
+
+
