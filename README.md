@@ -49,6 +49,10 @@ The mint function has a bytes32 _linkHash argument. _linkHash contains a hash of
 
 Each moken stores an instance of a Moken struct. The Moken struct consists of a moken name and a 32 byte storage slot called "data". The "data" storage variable contains the first 8 bytes from the _linkHash variable, a 2 byte unsigned integer that is an index into the list of all eras which is used to get the era for the moken, a two byte unsigned integer that is the position of the moken in the list of mokens owned by the owner address, and the address of the owner of the moken. Storing all this data in one 256 bit storage slot saves gas when minting, and saves gas when reading this data from storage.
 
+### Moken Names Are Unique
+
+The `validateAndLower(string _s)` function converts a moken name to lower case and throws if the moken name contains any non-printing ascii characters or certain whitespace ascii characters such as \n or a space at the beginning or end of it. This function and the `tokenByName_` mapping are used to prevent any moken from having the same name. So all moken names are unique in a case insensitive way and cannot contain non-printing characters or unncessary ascii whitespace characters. Moken names can contain the space character between other characters.
+
 ### Mokens
 
 Within the scope of the Mokens Contract a moken consists of a tokenId, a name, a lowercase version of the name, an era, an owner address, an index position in the list of owner mokens, an 8-byte hash of data contents and a tokenURI.
