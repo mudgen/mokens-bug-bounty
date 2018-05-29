@@ -1,5 +1,7 @@
 # Bug Bounty Program for the Mokens Contract
 
+Mokens is a web interface and ethereum smart contract that enables regular people to design and create their own cryptocollectibles. But there is more to it than that so read the webpage about mokens here: https://mokens.io/about
+
 This bug bounty program applies to the [Mokens contract](Mokens.sol) in this repository.
 
 I am willing to pay up to 1 ETH total for security vulnerabilities or other bugs found or for important gas optimizations. The amount of ETH paid for a bug found will depend on the severity and importance of the bug and the helpfullness of the bug report. No ETH will be paid for bugs that have been previously reported.
@@ -9,8 +11,6 @@ To report a bug create an issue in this repository about it.
 Generally, any useful comments, about bugs or not, are appreciated.
 
 The bug bounty starts 28 May 2018 and ends on 1 June 2018 or potentially later than that.
-
-Mokens is a web interface and ethereum smart contract that enables regular people to design and create their own cryptocollectibles. But there is more to it than that so read the webpage about mokens here: https://mokens.io/about
 
 Currently the beta version of the mokens website is running here: https://mokens.io/
 
