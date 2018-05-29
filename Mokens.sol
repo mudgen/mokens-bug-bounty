@@ -307,15 +307,15 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
 
     mapping (uint256 => string) private tokenURI_;
 
-    string private defaultURLStart = "https://api.mokens.io/moken/";
-    string private defaultURLEnd = ".json";
+    string private defaultURIStart = "https://api.mokens.io/moken/";
+    string private defaultURIEnd = ".json";
 
-    function setDefaultURLStart(string _defaultURLStart) external onlyManager {
-        defaultURLStart = _defaultURLStart;
+    function setDefaultURIStart(string _defaultUILStart) external onlyManager {
+        defaultURIStart = _defaultURIStart;
     }
 
-    function setDefaultURLEnd(string _defaultURLEnd) external onlyManager {
-        defaultURLEnd = _defaultURLEnd;
+    function setDefaultURIEnd(string _defaultURIEnd) external onlyManager {
+        defaultURIEnd = _defaultURIEnd;
     }
 
     function setTokenURI(uint256 _tokenId, string _uri) external onlyApproved(_tokenId) {
@@ -334,7 +334,7 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
     function tokenURI(uint256 _tokenId) external view returns (string tokenURIString) {
         require(_tokenId < mokensLength, "The tokenId does not exist.");
         if(bytes(tokenURI_[_tokenId]).length == 0) {
-            return makeIntString(defaultURLStart,_tokenId,defaultURLEnd);
+            return makeIntString(defaultURIStart,_tokenId,defaultURIEnd);
         }
         else {
             return tokenURI_[_tokenId];
