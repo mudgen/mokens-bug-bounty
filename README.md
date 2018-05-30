@@ -10,7 +10,7 @@ To report a bug create an issue in this repository about it.
 
 Generally, any useful comments, about bugs or not, are appreciated.
 
-The bug bounty starts 28 May 2018 and ends on 1 June 2018 or potentially later than that.
+The bug bounty starts 28 May 2018 and ends on 5 June 2018 or potentially later than that.
 
 Currently the beta version of the mokens website is running here: https://mokens.io/
 
