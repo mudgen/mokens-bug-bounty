@@ -6,7 +6,7 @@ This bug bounty program applies to the [Mokens contract](Mokens.sol) in this rep
 
 I am willing to pay up to 1 ETH total for security vulnerabilities or other bugs found or for important gas optimizations. The amount of ETH paid for a bug found will depend on the severity and importance of the bug and the helpfullness of the bug report. No ETH will be paid for bugs that have been previously reported.
 
-To report a bug create an issue in this repository about it.
+To report a bug create an issue in this repository about it. If you look and don't find any bugs then I really appreciate you telling me that too.
 
 Generally, any useful comments, about bugs or not, are appreciated.
 
