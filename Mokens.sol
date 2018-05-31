@@ -517,8 +517,10 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
 
         //Was enough ether passed in?
         uint256 currentMintPrice = (tokenId * mintStepPrice_) - mintPriceOffset;
+        uint256 pricePaid = currentMintPrice;
         if(msg.value < currentMintPrice) {
-            require(mintPriceBuffer_ > currentMintPrice || msg.value >= (currentMintPrice - mintPriceBuffer_), "Paid ether is lower than mint price.");
+            require(mintPriceBuffer_ > currentMintPrice || msg.value >= currentMintPrice - mintPriceBuffer_, "Paid ether is lower than mint price.");
+            pricePaid = msg.value;
         }
 
         string memory lowerMokenName = validateAndLower(_mokenName);
@@ -541,11 +543,6 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
         //add moken to the specific owner
         ownedTokens[_owner].push(uint32(tokenId));
 
-        uint256 pricePaid = currentMintPrice;
-        if(msg.value < currentMintPrice) {
-            pricePaid = msg.value;
-        }
-    
         //emit events
         emit Transfer(address(0), _owner, tokenId);
         emit Mint(this, _owner, eras[eraIndex_], _mokenName, bytes32(data), tokenId, "Ether", pricePaid);
