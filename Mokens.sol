@@ -404,6 +404,7 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
     // It is predicted that often a new era comes with a mint price change
     function startNextEra(bytes32 _eraName,  uint256 _mintStepPrice, uint256 _mintPriceOffset, uint256 _mintPriceBuffer) external onlyManager 
     returns (uint256 index, uint256 startTokenId, uint256 mintPrice) {
+        require(_mintStepPrice < 10000 ether, "mintStepPrice must be less than 10,000 ether.");
         mintPriceOffset = _mintPriceOffset;
         mintStepPrice = _mintStepPrice;
         mintPriceBuffer = _mintPriceBuffer;
