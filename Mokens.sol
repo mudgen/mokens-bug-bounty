@@ -100,9 +100,9 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
     // Mapping from owner to list of owned token IDs
     mapping (address => uint32[]) private ownedTokens;
 
-    uint256 constant UINT16_MASK = 0x000000000000000000000000000000000000000000000000000000000000ffff;
+    uint256 constant UINT16_MASK =          0x000000000000000000000000000000000000000000000000000000000000ffff;
     uint256 constant MOKEN_LINK_HASH_MASK = 0xffffffffffffffff000000000000000000000000000000000000000000000000;
-    uint256 constant MOKEN_DATA_MASK = 0x0000000000000000ffffffffffffffffffffffffffffffffffffffffffffffff;
+    uint256 constant MOKEN_DATA_MASK =      0x0000000000000000ffffffffffffffffffffffffffffffffffffffffffffffff;
     uint256 constant MAX_MOKENS = 4294967296;
     uint256 constant MAX_OWNER_MOKENS = 65536;
 
@@ -773,5 +773,8 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
             mokenNameBytes32_ := mload(add(mokenNameBytes, 32))
         }
         return mokenNameBytes32_;
-    }   
+    }
+    
 }
+
+
