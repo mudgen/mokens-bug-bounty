@@ -402,13 +402,15 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
     }
 
     // It is predicted that often a new era comes with a mint price change
-    function startNextEra(bytes32 _eraName,  uint256 _mintBasePrice, uint256 _mintStepPrice, uint256 _mintPriceBuffer) external onlyManager 
+    function startNextEra(bytes32 _eraName,  uint256 _mintStepPrice, uint256 _mintPriceOffset, uint256 _mintPriceBuffer) external onlyManager 
     returns (uint256 index, uint256 startTokenId, uint256 mintPrice) {
-        mintBasePrice = _mintBasePrice;
+        mintPriceOffset = _mintPriceOffset;
         mintStepPrice = _mintStepPrice;
         mintPriceBuffer = _mintPriceBuffer;
-        mintPrice = _mintBasePrice + (mokensLength * _mintStepPrice);
-        emit MintPriceConfigurationChange(mintPrice, _mintBasePrice, _mintStepPrice, _mintPriceBuffer);
+        uint256 totalStepPrice = mokensLength * _mintStepPrice;
+        require(totalStepPrice >= _mintPriceOffset, "(mokensLength * mintStepPrice) must be greater than or equal to mintPriceOffset.");
+        mintPrice = totalStepPrice - _mintPriceOffset;
+        emit MintPriceConfigurationChange(mintPrice, _mintStepPrice, _mintPriceOffset, _mintPriceBuffer);
         emit MintPriceChange(mintPrice);
         (index, startTokenId) = startNextEra_(_eraName);
         return (index, startTokenId, mintPrice);
@@ -469,27 +471,34 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
 
     event MintPriceConfigurationChange(
         uint256 mintPrice,
-        uint256 mintPriceBuffer,
-        uint256 mintBasePrice,
-        uint256 mintStepPrice
+        uint256 mintStepPrice,
+        uint256 mintPriceOffset,
+        uint256 mintPriceBuffer
     );
 
-    uint256 public mintBasePrice = 10000 szabo;
+    uint256 public mintPriceOffset = 0 szabo;
     uint256 public mintStepPrice = 500 szabo;
-    uint256 public mintPriceBuffer = 10000 szabo;
+    uint256 public mintPriceBuffer = 5000 szabo;
+    
+    function mintData() external view returns(uint256 mokensLength_, uint256 mintStepPrice_, uint256 mintPriceOffset_) {
+        return (mokensLength, mintStepPrice, mintPriceOffset);
+    }
 
-    function setMintPrice(uint256 _mintBasePrice, uint256 _mintStepPrice, uint256 _mintPriceBuffer) external onlyManager returns(uint256 mintPrice) {
-        mintBasePrice = _mintBasePrice;
+    function setMintPrice(uint256 _mintStepPrice, uint256 _mintPriceOffset, uint256 _mintPriceBuffer) external onlyManager returns(uint256 mintPrice) {
+        require(_mintStepPrice < 10000 ether, "mintStepPrice must be less than 10,000 ether.");
+        mintPriceOffset = _mintPriceOffset;
         mintStepPrice = _mintStepPrice;
         mintPriceBuffer = _mintPriceBuffer;
-        mintPrice = _mintBasePrice + (mokensLength * _mintStepPrice);
-        emit MintPriceConfigurationChange(mintPrice, _mintBasePrice, _mintStepPrice, _mintPriceBuffer);
+        uint256 totalStepPrice = mokensLength * _mintStepPrice;
+        require(totalStepPrice >= _mintPriceOffset, "(mokensLength * mintStepPrice) must be greater than or equal to mintPriceOffset.");
+        mintPrice = totalStepPrice - _mintPriceOffset;
+        emit MintPriceConfigurationChange(mintPrice, _mintStepPrice, _mintPriceOffset, _mintPriceBuffer);
         emit MintPriceChange(mintPrice);
         return mintPrice;
     }
     
     function mintPrice() external view returns(uint256) {
-        return mintBasePrice + (mokensLength * mintStepPrice);
+        return (mokensLength * mintStepPrice) - mintPriceOffset;
     }
 
     //moken name to tokenId+1
@@ -503,11 +512,12 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
         // prevents 32 bit overflow
         require(tokenId < MAX_MOKENS, "Only 4,294,967,296 mokens can be created.");
         uint256 mintStepPrice_ = mintStepPrice;
+        uint256 mintPriceBuffer_ = mintPriceBuffer;
 
         //Was enough ether passed in?
-        uint256 currentMintPrice = mintBasePrice + (tokenId * mintStepPrice_);
+        uint256 currentMintPrice = (tokenId * mintStepPrice_) - mintPriceOffset;
         if(msg.value < currentMintPrice) {
-            require(msg.value >= (currentMintPrice - mintPriceBuffer), "Paid ether is lower than mint price.");
+            require(mintPriceBuffer_ > currentMintPrice || msg.value >= (currentMintPrice - mintPriceBuffer_), "Paid ether is lower than mint price.");
         }
 
         string memory lowerMokenName = validateAndLower(_mokenName);
@@ -617,7 +627,7 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
 
         emit Transfer(address(0), _owner, tokenId);
         emit Mint(msg.sender, _owner, eras[eraIndex_], _mokenName, bytes32(data), tokenId, _currencyName, _pricePaid);
-        emit MintPriceChange(mintBasePrice + (mokensLength_ * mintStepPrice));
+        emit MintPriceChange((mokensLength_ * mintStepPrice) - mintPriceOffset);
         
         return tokenId;
     }
@@ -639,7 +649,7 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
                 }
             }
             else {
-                require(b > 0x1f, "Moken names may not contain nonprintable and whitespace characters other than the space character.");
+                require(b > 0x1f, "Moken names should not contain nonprintable and whitespace characters other than the space character.");
             }
         }
         return string(_sBytes);
@@ -763,8 +773,5 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
             mokenNameBytes32_ := mload(add(mokenNameBytes, 32))
         }
         return mokenNameBytes32_;
-    }
-    
+    }   
 }
-
-
