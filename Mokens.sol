@@ -637,17 +637,12 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
         require(length != 0, "Moken name cannot be an empty string.");
         require(length < 101, "Moken name cannot be greater than 100 characters.");
         //make sure the string does not start or end with whitepace.
-        require(uint256(_sBytes[0]) > 0x20 && uint256(_sBytes[length-1]) > 0x20, "Moken names cannot contain leading or trailing spaces or nonprintable characters.");
+        require(uint256(_sBytes[0]) > 0x20 && uint256(_sBytes[length-1]) > 0x20, "Moken names should not contain leading or trailing spaces or nonprintable characters.");
         //lowercase the string
         for (uint256 i = 0; i < length; i++) {
             uint256 b = uint256(_sBytes[i]);
-            if(b > 0x40) {
-                if(b < 0x5b) {
-                    _sBytes[i] = byte(b+32);
-                }
-            }
-            else {
-                require(b > 0x1f, "Moken names should not contain nonprintable and whitespace characters other than the space character.");
+            if(b < 0x5b && b > 0x40) {
+                _sBytes[i] = byte(b+32);
             }
         }
         return string(_sBytes);
