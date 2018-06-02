@@ -24,7 +24,7 @@ contract ERC721Receiver {
  */
 interface ERC721 {
     event Transfer(address indexed _from, address indexed _to, uint256 indexed _tokenId);
-    event Approval(address indexed _owner, address indexed _approved, uint256 indexed_tokenId);
+    event Approval(address indexed _owner, address indexed _approved, uint256 indexed _tokenId);
     event ApprovalForAll(address indexed _owner, address indexed _operator, bool _approved);
 
     function balanceOf(address _owner) external view returns (uint256 _balance);
