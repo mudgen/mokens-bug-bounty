@@ -237,15 +237,17 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
         //removing the tokenId
         // 1. We replace _tokenId in ownedTokens[_from] with the last token id
         //    in ownedTokens[_from]
-        uint256 lastTokenIndex = ownedTokens[_from].length - 1;
+        uint256 lastTokenIndex = ownedTokens[_from].length - 1;        
         uint256 lastTokenId = ownedTokens[_from][lastTokenIndex];
-        uint256 tokenIndex = data >> 160 & UINT16_MASK;
-        ownedTokens[_from][tokenIndex] = uint32(lastTokenId);
-        // 2. We remove lastTokenId from the end of ownedTokens[_from]
+        if(lastTokenId != _tokenId) {
+            uint256 tokenIndex = data >> 160 & UINT16_MASK;
+            ownedTokens[_from][tokenIndex] = uint32(lastTokenId);
+            // 2. We set lastTokeId to point to its new position in ownedTokens[_from]
+            uint256 lastTokenIdData = mokens[lastTokenId].data;
+            mokens[lastTokenId].data = lastTokenIdData & 0xffffffffffffffffffff0000ffffffffffffffffffffffffffffffffffffffff | tokenIndex << 160;
+        }
+        // 3. We remove lastTokenId from the end of ownedTokens[_from]
         ownedTokens[_from].length--;
-        // 3. We set lastTokeId to point to its new position in ownedTokens[_from]
-        uint256 lastTokenIdData = mokens[lastTokenId].data;
-        mokens[lastTokenId].data = lastTokenIdData & 0xffffffffffffffffffff0000ffffffffffffffffffffffffffffffffffffffff | tokenIndex << 160;
 
         //adding the tokenId
         uint256 ownedTokensIndex = ownedTokens[_to].length;
