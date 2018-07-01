@@ -1,9 +1,10 @@
 pragma solidity 0.4.24;
+pragma experimental "v0.5.0";
 
-contract ERC721Receiver {
-    /// @dev Magic value to be returned upon successful reception of an NFT
-    ///  Equals to bytes4(keccak256("onERC721Received(address,uint256,bytes)"))
-    bytes4 constant ERC721_RECEIVED = 0xf0b9e5ba;
+
+
+interface ERC721TokenReceiver {
+
 
     /// @notice Handle the receipt of an NFT
     /// @dev The ERC721 smart contract calls this function on the recipient
@@ -15,7 +16,7 @@ contract ERC721Receiver {
     /// @param _tokenId The NFT identifier which is being transfered
     /// @param _data Additional data with no specified format
     /// @return `bytes4(keccak256("onERC721Received(address,uint256,bytes)"))`
-    function onERC721Received(address _from, uint256 _tokenId, bytes _data) public returns (bytes4);
+    function onERC721Received(address _from, uint256 _tokenId, bytes _data) external returns (bytes4);
 }
 
 /**
@@ -24,25 +25,25 @@ contract ERC721Receiver {
  */
 interface ERC721 {
     event Transfer(address indexed _from, address indexed _to, uint256 indexed _tokenId);
-    event Approval(address indexed _owner, address indexed _approved, uint256 indexed _tokenId);
-    event ApprovalForAll(address indexed _owner, address indexed _operator, bool _approved);
+    event Approval(address indexed _tokenOwner, address indexed _approved, uint256 indexed _tokenId);
+    event ApprovalForAll(address indexed _tokenOwner, address indexed _operator, bool _approved);
 
-    function balanceOf(address _owner) external view returns (uint256 _balance);
-    function ownerOf(uint256 _tokenId) external view returns (address _owner);
+    function balanceOf(address _tokenOwner) external view returns (uint256 _balance);
+    function ownerOf(uint256 _tokenId) external view returns (address _tokenOwner);
     function safeTransferFrom(address _from, address _to, uint256 _tokenId, bytes _data) external;
     function safeTransferFrom(address _from, address _to, uint256 _tokenId) external;
     function transferFrom(address _from, address _to, uint256 _tokenId) external;
     function approve(address _to, uint256 _tokenId) external;
     function setApprovalForAll(address _operator, bool _approved) external;
     function getApproved(uint256 _tokenId) external view returns (address _operator);
-    function isApprovedForAll(address _owner, address _operator) external view returns (bool);
+    function isApprovedForAll(address _tokenOwner, address _operator) external view returns (bool);
 }
 
 /// @title ERC-721 Non-Fungible Token Standard, optional enumeration extension
 /// @dev See https://github.com/ethereum/EIPs/blob/master/EIPS/eip-721.md
 interface ERC721Enumerable {
     function totalSupply() external view returns (uint256);
-    function tokenOfOwnerByIndex(address _owner, uint256 _index) external view returns (uint256 _tokenId);
+    function tokenOfOwnerByIndex(address _tokenOwner, uint256 _index) external view returns (uint256 _tokenId);
     function tokenByIndex(uint256 _index) external view returns (uint256);
 }
 
@@ -65,13 +66,36 @@ interface ERC165 {
 }
 
 
-contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
-    uint256 public blockNum;
+interface ERC998NFT {
+    event ReceivedChild(address indexed _from, uint256 indexed _tokenId, address indexed _childContract, uint256 _childTokenId);
+    event TransferChild(address indexed _to, bytes _data, uint256 indexed _childTokenId);    
+    
+    function childOwnerOf(address _childContract, uint256 _childTokenId) external view returns (uint256 tokenId);
+    function onERC721Received(address _from, uint256 _childTokenId, bytes _data) external returns(bytes4);
+    function transferChild(address _to, uint256 _tokenId, address _childContract, uint256 _childTokenId) external;
+    function transferChild(address _to, uint256 _tokenId, address _childContract, uint256 _childTokenId, bytes data) external;
+    
+}
 
+interface ERC998NFTEnumerable {
+    function totalChildContracts(uint256 _tokenId) external view returns(uint256);
+    function childContractByIndex(uint256 _tokenId, uint256 _index) external view returns (address childContract);
+    function totalChildTokens(uint256 _tokenId, address _childContract) external view returns(uint256);
+    function childTokenByIndex(uint256 _tokenId, address _childContract, uint256 _index) external view returns (uint256 childTokenId);
+}
+
+contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165, ERC998NFT, ERC998NFTEnumerable {
+    uint256 public blockNum;
+    
+    
+    /// @dev Magic value to be returned upon successful reception of an NFT
+    ///  Equals to bytes4(keccak256("onERC721Received(address,uint256,bytes)"))
+    bytes4 constant ERC721_RECEIVED = 0xf0b9e5ba;
+    
     constructor() public {
 
         blockNum = block.number;
-        manager = msg.sender;
+        owner = msg.sender;
         startNextEra_("Genesis");
 
     }
@@ -110,8 +134,7 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
     /******************************************************************************/
     /******************************************************************************/
     /* Contract Management ***********************************************************/
-    address public manager;
-    address public contractManager = address(0);
+    address public owner;
     
     // Mapping from token ID to approved address
     mapping (uint256 => address) private tokenApprovals;
@@ -123,20 +146,20 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
         return address(this).balance;
     }
 
-    modifier onlyManager() {
-        require(msg.sender == manager || msg.sender == contractManager, "Must be the manager.");
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Must be the owner.");
         _;
     }
 
     modifier onlyApproved(uint256 _tokenId) {
-        address owner = address(mokens[_tokenId].data);
-        require(owner != address(0), "The tokenId does not exist.");
-        require(msg.sender == owner || tokenApprovals[_tokenId] == msg.sender || operatorApprovals[owner][msg.sender],
-            "Must be the owner or approved to take this action.");
+        address tokenOwner = address(mokens[_tokenId].data);
+        require(tokenOwner != address(0), "The tokenId does not exist.");
+        require(msg.sender == tokenOwner || tokenApprovals[_tokenId] == msg.sender || operatorApprovals[tokenOwner][msg.sender],
+            "Must be the token owner or approved to take this action.");
         _;
     }
 
-    function withdraw(address _sendTo, uint256 _amount) external onlyManager {
+    function withdraw(address _sendTo, uint256 _amount) external onlyOwner {
         address mokensContract = this;
         if (_amount > mokensContract.balance) {
             _sendTo.transfer(mokensContract.balance);
@@ -146,14 +169,11 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
 
     }
     
-    function setManager(address _manager) external onlyManager {
-        if(isContract(_manager) || _manager == address(0)) {
-            contractManager = _manager;
-        }
-        else {
-            manager = _manager;
-        }
+    function transferOwnership(address _newOwner) public onlyOwner {
+        require(_newOwner != address(0));
+        owner = _newOwner;
     }
+    
     
 
     /******************************************************************************/
@@ -161,34 +181,31 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
     /******************************************************************************/
     /* ERC721Impl ***********************************************************/
 
-    // Equals to bytes4(keccak256("onERC721Received(address,uint256,bytes)"))
-    bytes4 constant ERC721_RECEIVED = 0xf0b9e5ba;
-
-    function balanceOf(address _owner) external view returns (uint256 totalMokensOwned) {
-        require(_owner != address(0), "Owner cannot be the 0 address.");
-        return ownedTokens[_owner].length;
+    function balanceOf(address _tokenOwner) external view returns (uint256 totalMokensOwned) {
+        require(_tokenOwner != address(0), "Owner cannot be the 0 address.");
+        return ownedTokens[_tokenOwner].length;
     }
 
-    function ownerOf(uint256 _tokenId) external view returns (address owner) {
-        owner = address(mokens[_tokenId].data);
-        require(owner != address(0), "The tokenId does not exist.");
-        return owner;
+    function ownerOf(uint256 _tokenId) external view returns (address tokenOwner) {
+        tokenOwner = address(mokens[_tokenId].data);
+        require(tokenOwner != address(0), "The tokenId does not exist.");
+        return tokenOwner;
     }
 
     function approve(address _to, uint256 _tokenId) external {
-        address owner = address(mokens[_tokenId].data);
-        require(owner != address(0), "The tokenId does not exist.");
-        require(msg.sender == owner || operatorApprovals[owner][msg.sender], "Must be the owner or approved operator.");
+        address tokenOwner = address(mokens[_tokenId].data);
+        require(tokenOwner != address(0), "The tokenId does not exist.");
+        require(msg.sender == tokenOwner || operatorApprovals[tokenOwner][msg.sender], "Must be the token owner or approved operator.");
 
         if (tokenApprovals[_tokenId] != address(0) || _to != address(0)) {
             tokenApprovals[_tokenId] = _to;
-            emit Approval(owner, _to, _tokenId);
+            emit Approval(tokenOwner, _to, _tokenId);
         }
     }
 
     function getApproved(uint256 _tokenId) external view returns (address approvedAddress) {
-        address owner = address(mokens[_tokenId].data);
-        require(owner != address(0), "The tokenId does not exist.");
+        address tokenOwner = address(mokens[_tokenId].data);
+        require(tokenOwner != address(0), "The tokenId does not exist.");
         return tokenApprovals[_tokenId];
     }
 
@@ -199,8 +216,8 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
         emit ApprovalForAll(msg.sender, _to, _approved);
     }
 
-    function isApprovedForAll(address _owner, address _operator) external view returns (bool approved) {
-        return operatorApprovals[_owner][_operator];
+    function isApprovedForAll(address _tokenOwner, address _operator) external view returns (bool approved) {
+        return operatorApprovals[_tokenOwner][_operator];
     }
 
     function transferFrom(address _from, address _to, uint256 _tokenId) external onlyApproved(_tokenId) {
@@ -225,8 +242,8 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
         require(_from != address(0), "_from cannot be the 0 address.");
         require(_to != address(0), "_to cannot be the 0 address.");
         uint256 data = mokens[_tokenId].data;
-        address owner = address(data);
-        require(owner == _from, "The tokenId is not owned by _from.");
+        address tokenOwner = address(data);
+        require(tokenOwner == _from, "The tokenId is not owned by _from.");
 
         //Clear approval
         if (tokenApprovals[_tokenId] != address(0)) {
@@ -237,7 +254,7 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
         //removing the tokenId
         // 1. We replace _tokenId in ownedTokens[_from] with the last token id
         //    in ownedTokens[_from]
-        uint256 lastTokenIndex = ownedTokens[_from].length - 1;        
+        uint256 lastTokenIndex = ownedTokens[_from].length - 1;
         uint256 lastTokenId = ownedTokens[_from][lastTokenIndex];
         if(lastTokenId != _tokenId) {
             uint256 tokenIndex = data >> 160 & UINT16_MASK;
@@ -248,11 +265,11 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
         }
         // 3. We remove lastTokenId from the end of ownedTokens[_from]
         ownedTokens[_from].length--;
-
+        
         //adding the tokenId
         uint256 ownedTokensIndex = ownedTokens[_to].length;
         // prevents 16 bit overflow
-        require(ownedTokensIndex < MAX_OWNER_MOKENS, "An single owner address cannot possess more than 65,536 mokens.");
+        require(ownedTokensIndex < MAX_OWNER_MOKENS, "An single token owner address cannot possess more than 65,536 mokens.");
         mokens[_tokenId].data = data & 0xffffffffffffffffffff00000000000000000000000000000000000000000000 | ownedTokensIndex << 160 | uint256(_to);
         ownedTokens[_to].push(uint32(_tokenId));
 
@@ -260,7 +277,7 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
 
         if (_safe) {
             if(isContract(_to)) {
-                bytes4 val = ERC721Receiver(_to).onERC721Received(_from, _tokenId, _data);
+                bytes4 val = ERC721TokenReceiver(_to).onERC721Received(_from, _tokenId, _data);
                 require(val == ERC721_RECEIVED, "The receiving contract must be able to receive this token.");
             }
         }
@@ -276,9 +293,9 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
         return _tokenId < mokensLength;
     }
 
-    function tokenOfOwnerByIndex(address _owner, uint256 _index) external view returns (uint256 tokenId) {
-        require(_index < ownedTokens[_owner].length, "Owner does not own a moken at this index.");
-        return ownedTokens[_owner][_index];
+    function tokenOfOwnerByIndex(address _tokenOwner, uint256 _index) external view returns (uint256 tokenId) {
+        require(_index < ownedTokens[_tokenOwner].length, "Owner does not own a moken at this index.");
+        return ownedTokens[_tokenOwner][_index];
     }
 
     function totalSupply() external view returns (uint256 totalMokens) {
@@ -309,11 +326,11 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
     string private defaultURIStart = "https://api.mokens.io/moken/";
     string private defaultURIEnd = ".json";
 
-    function setDefaultURIStart(string _defaultURIStart) external onlyManager {
+    function setDefaultURIStart(string _defaultURIStart) external onlyOwner {
         defaultURIStart = _defaultURIStart;
     }
 
-    function setDefaultURIEnd(string _defaultURIEnd) external onlyManager {
+    function setDefaultURIEnd(string _defaultURIEnd) external onlyOwner {
         defaultURIEnd = _defaultURIEnd;
     }
 
@@ -404,7 +421,7 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
     }
 
     // It is predicted that often a new era comes with a mint price change
-    function startNextEra(bytes32 _eraName,  uint256 _mintStepPrice, uint256 _mintPriceOffset, uint256 _mintPriceBuffer) external onlyManager 
+    function startNextEra(bytes32 _eraName,  uint256 _mintStepPrice, uint256 _mintPriceOffset, uint256 _mintPriceBuffer) external onlyOwner
     returns (uint256 index, uint256 startTokenId, uint256 mintPrice) {
         require(_mintStepPrice < 10000 ether, "mintStepPrice must be less than 10,000 ether.");
         mintPriceOffset = _mintPriceOffset;
@@ -419,7 +436,7 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
         return (index, startTokenId, mintPrice);
     }
 
-    function startNextEra(bytes32 _eraName) external onlyManager returns (uint256 index, uint256 startTokenId) {
+    function startNextEra(bytes32 _eraName) external onlyOwner returns (uint256 index, uint256 startTokenId) {
         return startNextEra_(_eraName);
     }
 
@@ -487,7 +504,7 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
         return (mokensLength, mintStepPrice, mintPriceOffset);
     }
 
-    function setMintPrice(uint256 _mintStepPrice, uint256 _mintPriceOffset, uint256 _mintPriceBuffer) external onlyManager returns(uint256 mintPrice) {
+    function setMintPrice(uint256 _mintStepPrice, uint256 _mintPriceOffset, uint256 _mintPriceBuffer) external onlyOwner returns(uint256 mintPrice) {
         require(_mintStepPrice < 10000 ether, "mintStepPrice must be less than 10,000 ether.");
         mintPriceOffset = _mintPriceOffset;
         mintStepPrice = _mintStepPrice;
@@ -507,9 +524,9 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
     //moken name to tokenId+1
     mapping (string => uint256) private tokenByName_;
 
-    function mint(address _owner, string _mokenName, bytes32 _linkHash) external payable returns (uint256 tokenId) {
+    function mint(address _tokenOwner, string _mokenName, bytes32 _linkHash) external payable returns (uint256 tokenId) {
 
-        require(_owner != address(0), "Owner cannot be the 0 address.");
+        require(_tokenOwner != address(0), "Owner cannot be the 0 address.");
 
         tokenId = mokensLength++;
         // prevents 32 bit overflow
@@ -529,13 +546,13 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
         require(tokenByName_[lowerMokenName] == 0, "Moken name already exists.");
 
         uint256 eraIndex_ = eraLength-1;
-        uint256 ownedTokensIndex = ownedTokens[_owner].length;
+        uint256 ownedTokensIndex = ownedTokens[_tokenOwner].length;
         // prevents 16 bit overflow
         require(ownedTokensIndex < MAX_OWNER_MOKENS, "An single owner address cannot possess more than 65,536 mokens.");
 
         // adding the current era index, ownedTokenIndex and owner address to data
         // this saves gas for each mint.
-        uint256 data = uint256(_linkHash) & MOKEN_LINK_HASH_MASK | eraIndex_ << 176 | ownedTokensIndex << 160 | uint160(_owner);
+        uint256 data = uint256(_linkHash) & MOKEN_LINK_HASH_MASK | eraIndex_ << 176 | ownedTokensIndex << 160 | uint160(_tokenOwner);
         
         // create moken
         mokens[tokenId].name = _mokenName;
@@ -543,11 +560,11 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
         tokenByName_[lowerMokenName] = tokenId+1;
 
         //add moken to the specific owner
-        ownedTokens[_owner].push(uint32(tokenId));
+        ownedTokens[_tokenOwner].push(uint32(tokenId));
 
         //emit events
-        emit Transfer(address(0), _owner, tokenId);
-        emit Mint(this, _owner, eras[eraIndex_], _mokenName, bytes32(data), tokenId, "Ether", pricePaid);
+        emit Transfer(address(0), _tokenOwner, tokenId);
+        emit Mint(this, _tokenOwner, eras[eraIndex_], _mokenName, bytes32(data), tokenId, "Ether", pricePaid);
         emit MintPriceChange(currentMintPrice + mintStepPrice_);
 
         //send minter the change if any
@@ -557,7 +574,7 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
         
         return tokenId;
     }
-    
+    /*
     address[] private mintContracts;
     mapping (address => uint256) private mintContractIndex;
    
@@ -595,9 +612,9 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
 
     // enables third-party contracts to mint mokens.
     // enables the ability to accept other currency/tokens for payment.
-    function contractMint(address _owner, string _mokenName, bytes32 _linkHash, bytes32 _currencyName, uint256 _pricePaid) external returns (uint256 tokenId) {
+    function contractMint(address _tokenOwner, string _mokenName, bytes32 _linkHash, bytes32 _currencyName, uint256 _pricePaid) external returns (uint256 tokenId) {
 
-        require(_owner != address(0), "Owner cannot be the 0 address.");
+        require(_tokenOwner != address(0), "Token owner cannot be the 0 address.");
         require(isMintContract(msg.sender),"Not an approved mint contract.");
 
         tokenId = mokensLength++;
@@ -609,13 +626,13 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
         require(tokenByName_[lowerMokenName] == 0, "Moken name already exists.");
 
         uint256 eraIndex_ = eraLength-1;
-        uint256 ownedTokensIndex = ownedTokens[_owner].length;
+        uint256 ownedTokensIndex = ownedTokens[_tokenOwner].length;
         // prevents 16 bit overflow
-        require(ownedTokensIndex < MAX_OWNER_MOKENS, "An single owner address cannot possess more than 65,536 mokens.");
+        require(ownedTokensIndex < MAX_OWNER_MOKENS, "An single token owner address cannot possess more than 65,536 mokens.");
 
         // adding the current era index, ownedTokenIndex and owner address to data
         // this saves gas for each mint.
-        uint256 data = uint256(_linkHash) & MOKEN_LINK_HASH_MASK | eraIndex_ << 176 | ownedTokensIndex << 160 | uint160(_owner);
+        uint256 data = uint256(_linkHash) & MOKEN_LINK_HASH_MASK | eraIndex_ << 176 | ownedTokensIndex << 160 | uint160(_tokenOwner);
 
         // create moken
         mokens[tokenId].name = _mokenName;
@@ -623,15 +640,15 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
         tokenByName_[lowerMokenName] = mokensLength_;
 
         //add moken to the specific owner
-        ownedTokens[_owner].push(uint32(tokenId));
+        ownedTokens[_tokenOwner].push(uint32(tokenId));
 
-        emit Transfer(address(0), _owner, tokenId);
-        emit Mint(msg.sender, _owner, eras[eraIndex_], _mokenName, bytes32(data), tokenId, _currencyName, _pricePaid);
+        emit Transfer(address(0), _tokenOwner, tokenId);
+        emit Mint(msg.sender, _tokenOwner, eras[eraIndex_], _mokenName, bytes32(data), tokenId, _currencyName, _pricePaid);
         emit MintPriceChange((mokensLength_ * mintStepPrice) - mintPriceOffset);
         
         return tokenId;
     }
-
+*/
 
     function validateAndLower(string _s) private pure returns(string mokenName) {
         bytes memory _sBytes = bytes(_s);
@@ -654,35 +671,6 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
     /******************************************************************************/
     /******************************************************************************/
     /* Mokens  **************************************************/
-
-    event LinkHashChange(
-        uint256 indexed tokenId,
-        bytes32 linkHash
-    );
-
-    event LinkHashPriceChange(
-        uint256 price
-    );
-
-    uint256 public updateLinkHashPrice_ = 0;
-
-    function updateLinkHashPrice(uint256 _updateLinkHashPrice) external onlyManager {
-        updateLinkHashPrice_ = _updateLinkHashPrice;
-        emit LinkHashPriceChange(_updateLinkHashPrice);
-    }
-
-    // changes the link hash of a moken
-    // this enables metadata/content data to be changed for mokens.
-    function updateLinkHash(uint256 _tokenId, bytes32 _linkHash) external onlyApproved(_tokenId) payable {
-        uint256 price = updateLinkHashPrice_;
-        require(msg.value >= price, "Paid ether is less than the datahash update price.");
-        uint256 data = mokens[_tokenId].data & MOKEN_DATA_MASK | uint256(_linkHash) & MOKEN_LINK_HASH_MASK;
-        mokens[_tokenId].data = data;
-        if(msg.value > price) {
-            msg.sender.transfer(msg.value - price);
-        }
-        emit LinkHashChange(_tokenId, bytes32(data));
-    }
 
     function mokenNameExists(string _mokenName) external view returns(bool) {
         return tokenByName_[validateAndLower(_mokenName)] != 0;
@@ -715,7 +703,7 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
     }
 
     function moken(uint256 _tokenId) external view 
-    returns (string memory mokenName, bytes32 era, bytes32 data, address owner) {
+    returns (string memory mokenName, bytes32 era, bytes32 data, address tokenOwner) {
         data = bytes32(mokens[_tokenId].data);
         require(data != 0, "The tokenId does not exist.");
         return (
@@ -727,7 +715,7 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
     }
     
     function mokenBytes32(uint256 _tokenId) external view 
-    returns (bytes32 mokenNameBytes32, bytes32 era, bytes32 data, address owner) {
+    returns (bytes32 mokenNameBytes32, bytes32 era, bytes32 data, address tokenOwner) {
         data = bytes32(mokens[_tokenId].data);
         require(data != 0, "The tokenId does not exist.");
         bytes memory mokenNameBytes = bytes(mokens[_tokenId].name);
@@ -745,7 +733,7 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
     
     
     function mokenNoName(uint256 _tokenId) external view 
-    returns (bytes32 era, bytes32 data, address owner) {
+    returns (bytes32 era, bytes32 data, address tokenOwner) {
         data = bytes32(mokens[_tokenId].data);
         require(data != 0, "The tokenId does not exist.");
         return (
@@ -770,6 +758,223 @@ contract Mokens is ERC721, ERC721Enumerable, ERC721Metadata, ERC165 {
         return mokenNameBytes32_;
     }
     
+    /******************************************************************************/
+    /******************************************************************************/
+    /******************************************************************************/
+    /* ERC998 Implementation  **************************************************/
+    
+    // tokenId => child contract
+    mapping(uint256 => address[]) private childContracts;
+    
+    // tokenId => (child address => contract index+1)
+    mapping(uint256 => mapping(address => uint256)) private childContractIndex;
+  
+    // tokenId => (child address => array of child tokens)
+    mapping(uint256 => mapping(address => uint256[])) private childTokens;
+  
+    // tokenId => (child address => (child token => child index+1)
+    mapping(uint256 => mapping(address => mapping(uint256 => uint256))) private childTokenIndex;
+    
+    // child address => childId => tokenId
+    mapping(address => mapping(uint256 => uint256)) private childTokenOwner;
+    
+    function test(uint256 _tokenId, address _childContract, uint256 _childTokenId) view external returns (uint256) {
+        return childTokenIndex[_tokenId][_childContract][_childTokenId];
+    }
+    
+    function removeChild(uint256 _tokenId, address _childContract, uint256 _childTokenId) private {
+        uint256 tokenIndex = childTokenIndex[_tokenId][_childContract][_childTokenId];
+        require(tokenIndex != 0, "Child token not owned by token.");
+        
+        // remove child token
+        uint256 lastTokenIndex = childTokens[_tokenId][_childContract].length-1;
+        uint256 lastToken = childTokens[_tokenId][_childContract][lastTokenIndex];
+        childTokens[_tokenId][_childContract][tokenIndex-1] = lastToken;
+        childTokenIndex[_tokenId][_childContract][lastToken] = tokenIndex;
+        childTokens[_tokenId][_childContract].length--;
+        delete childTokenIndex[_tokenId][_childContract][_childTokenId];
+        delete childTokenOwner[_childContract][_childTokenId];
+        
+        // remove contract
+        if(lastTokenIndex == 0) {
+            uint256 contractIndex = childContractIndex[_tokenId][_childContract];
+            uint256 lastContractIndex = childContracts[_tokenId].length - 1;
+            address lastContract = childContracts[_tokenId][lastContractIndex];
+            childContracts[_tokenId][contractIndex] = lastContract;
+            childContractIndex[_tokenId][lastContract] = contractIndex;
+            childContracts[_tokenId].length--;
+            delete childContractIndex[_tokenId][_childContract];
+        }
+
+    }
+    
+    function transferChild(address _to, uint256 _tokenId, address _childContract, uint256 _childTokenId, bytes _data) onlyApproved(_tokenId) external {
+        removeChild(_tokenId, _childContract, _childTokenId);
+        ERC721(_childContract).safeTransferFrom(this, _to, _childTokenId, _data);
+        /*
+        //require that the child was transfered safely to it's destination
+        require(
+          _childContract.call(
+            bytes4(keccak256("safeTransferFrom(address,address,uint256,bytes)")), this, _to, _childTokenId, _data
+          ), "safeTransferFrom call failed."
+        );
+        */
+        emit TransferChild(_to, _data, _childTokenId);
+    }
+    
+    function onERC721Received(address _from, uint256 _childTokenId, bytes _data) external returns(bytes4) {
+        require(_data.length > 0, "_data must contain the uint256 tokenId to transfer the child token to.");
+        // convert up to 32 bytes of_data to uint256, owner nft tokenId passed as uint in bytes
+        uint256 _tokenId;
+        assembly { 
+            _tokenId := calldataload(132)
+        }
+        if(_data.length < 32) {
+            _tokenId = _tokenId >> 256 - _data.length * 8;
+        }
+        
+        receiveChild(_from, _tokenId, msg.sender, _childTokenId);
+        
+        return ERC721_RECEIVED;
+    }
+    
+    function transferChild(address _to, uint256 _tokenId, address _childContract, uint256 _childTokenId) external onlyApproved(_tokenId) {
+        removeChild(_tokenId, _childContract, _childTokenId);
+        //require that the child was transfered safely to it's destination
+        require(
+          _childContract.call(
+            bytes4(keccak256("safeTransferFrom(address,address,uint256)")), this, _to, _childTokenId
+          )
+        );
+        emit TransferChild(_to, new bytes(0), _childTokenId);
+    }
+  
+    
+    function receiveChild(address _from, uint256 _tokenId, address _childContract, uint256 _childTokenId) private {
+        uint256 childTokensLength = childTokens[_tokenId][_childContract].length;
+        if(childTokensLength == 0) {
+            childContractIndex[_tokenId][_childContract] = childContracts[_tokenId].length;
+            childContracts[_tokenId].push(_childContract);
+        }
+        childTokens[_tokenId][_childContract].push(_childTokenId);
+        childTokenIndex[_tokenId][_childContract][_childTokenId] = childTokensLength+1;
+        childTokenOwner[_childContract][_childTokenId] = _tokenId;
+        
+        emit ReceivedChild(_from, _tokenId, _childContract, _childTokenId);
+    }
+
+    /*
+    
+   
+    
+
+    
+    function safeTransferChild(address _to, uint256 _tokenId, address _childContract, uint256 _childTokenId, bytes _data) onlyApproved(_tokenId) external {
+        removeChild(_tokenId, _childContract, _childTokenId);
+        //require that the child was transfered safely to it's destination
+        require(
+          _childContract.call(
+            bytes4(keccak256("safeTransferFrom(address,address,uint256,bytes)")), this, _to, _childTokenId, _data
+          )
+        );
+        emit TransferChild(_to, _data, _childTokenId);
+    }
+    
+    function transferChild(address _to, uint256 _tokenId, address _childContract, uint256 _childTokenId) external onlyApproved(_tokenId) {
+        removeChild(_tokenId, _childContract, _childTokenId);
+        //require that the child was transfered safely to it's destination
+        require(
+          _childContract.call(
+            bytes4(keccak256("transferFrom(address,address,uint256)")), this, _to, _childTokenId
+          )
+        );
+        emit TransferChild(_to, new bytes(0), _childTokenId);
+    }
+    
+    function transferChildToComposable(address _to, uint256 _tokenId, address _childContract, uint256 _childTokenId, uint256 composableId) external onlyApproved(_tokenId) {
+        removeChild(_tokenId, _childContract, _childTokenId);
+        //require that the child was transfered safely to it's destination
+        require(
+          _childContract.call(
+            bytes4(keccak256("transferFrom(address,address,uint256)")), this, _to, _childTokenId
+          )
+        );
+        emit TransferChild(_to, new bytes(0), _childTokenId);
+    }
+    */
+    
+    /*
+    // This contract must be approved in _childContract so the child can be obtained
+    // Either the approve or setApprovalForAll functions can be used to approve this contract to get the child.
+    function getChild(address _from, uint256 _tokenId, address _childContract, uint256 _childTokenId) external {
+        uint256 childTokensLength = childTokens[_tokenId][_childContract].length;
+        if(childTokensLength == 0) {
+            childContractIndex[_tokenId][_childContract] = childContracts[_tokenId].length;
+            childContracts[_tokenId].push(_childContract);
+        }
+        childTokens[_tokenId][_childContract].push(_childTokenId);
+        childTokenIndex[_tokenId][_childContract][_childTokenId] = childTokensLength+1;
+        childTokenOwner[_childContract][_childTokenId] = _tokenId;
+        
+        require(
+          _childContract.call(
+            bytes4(keccak256("transferFrom(address,address,uint256)")), _from, this, _childTokenId
+          )
+        );
+        emit ReceivedChild(_tokenId, _childContract, _childTokenId, _from);
+    }
+    
+    
+    function transferChild(address _to, uint256 _tokenId, address _childContract, uint256 _childTokenId) onlyApproved(_tokenId) external {
+        removeChild(_tokenId, _childContract, _childTokenId);
+        //require that the child was transfered safely to it's destination
+        require(
+          _childContract.call(
+            bytes4(keccak256("transferFrom(address,address,uint256,bytes)")), this, _to, _childTokenId
+          )
+        );
+        bytes data;
+        
+        
+        emit TransferChild(_to, data, _childTokenId);
+    }
+    */
+    
+    function childOwnerOf(address _childContract, uint256 _childTokenId) external view returns (uint256 tokenId) {
+        tokenId = childTokenOwner[_childContract][_childTokenId];
+        if(tokenId == 0) {
+            require(childTokenIndex[tokenId][_childContract][_childTokenId] != 0, "Child token is not owned by any tokens.");
+        }
+        return tokenId;
+    }
+    
+    function childExists(address _childContract, uint256 _childTokenId) external view returns (bool) {
+        uint256 tokenId = childTokenOwner[_childContract][_childTokenId];
+        return childTokenIndex[tokenId][_childContract][_childTokenId] != 0;
+    }
+    
+    function totalChildContracts(uint256 _tokenId) external view returns(uint256) {
+        return childContracts[_tokenId].length;
+    }
+    
+    function childContractByIndex(uint256 _tokenId, uint256 _index) external view returns (address childContract) {
+        require(_index < childContracts[_tokenId].length, "Contract address does not exist for this token and index.");
+        return childContracts[_tokenId][_index];
+    }
+    
+    function totalChildTokens(uint256 _tokenId, address _childContract) external view returns(uint256) {
+        return childTokens[_tokenId][_childContract].length;
+    }
+    
+    function childTokenByIndex(uint256 _tokenId, address _childContract, uint256 _index) external view returns (uint256 childTokenId) {
+        require(_index < childTokens[_tokenId][_childContract].length, "Token does not own a child token at contract address and index.");
+        return childTokens[_tokenId][_childContract][_index];
+    }
+    
 }
+
+
+
+
 
 
